@@ -1,0 +1,17 @@
+user:
+  name: root
+  group: wheel
+  shell: /bin/fish
+
+system:
+  locale: us_CA.UTF-8
+  timezone: America/Montreal
+
+network:
+  ssid: XXXX
+  password: XXXX
+
+base-packages:
+  - base-devel
+  - fish
+  - zsh

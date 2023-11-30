@@ -1,0 +1,7 @@
+- name: Install ArchLinux
+  hosts: hosts
+  connection: local
+  become: true
+
+  roles:
+    - { role: main }
