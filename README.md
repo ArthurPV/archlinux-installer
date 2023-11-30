@@ -1,7 +1,8 @@
 # ArchLinux Install
 
-```
+```bash
 git clone repo
 cd repo
-ansible-playbook ./playbook.yaml
+./generate_playbook.py
+ansible-playbook -i ./playbooks/<playbook_name>/inventory.ini ./playbooks/<playbook_name>/playbook.yaml
 ```

@@ -1,0 +1,17 @@
+---
+
+- name: Verify ping
+  ansible.builtin.shell:
+    cmd: ping -c 3 google.com
+
+- name: Verify GPG key
+  ansible.builtin.shell:
+    cmd: gpg --auto-key-locate clear,wkd -v --locate-external-key pierre@archlinux.org
+
+- name: Update pacman database
+  pacman:
+    update_cache: true
+
+- name: Update the system clock
+  ansible.builtin.shell:
+    cmd: timedatectl

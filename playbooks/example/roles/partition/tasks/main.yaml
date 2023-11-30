@@ -1,0 +1,46 @@
+---
+- name: Create EFI partition
+  community.general.parted:
+    device: "{{ device }}"
+    number: "{{ efi_number }}"
+    state: present
+    label: gpt
+    flags: [esp]
+    part_start: "{{ part_start_efi_size }}"
+    part_end: "{{ part_end_efi_size }}"
+  when: layout == "uefi"
+
+- name: Format EFI partition
+  community.general.filesystem:
+    fstype: fat32
+    dev: "{{ device }}{{ efi_number }}"
+  when: layout == "uefi"
+
+- name: Create swap partition
+  community.general.parted:
+    device: "{{ device }}"
+    number: "{{ swap_number }}"
+    state: present
+    label: gpt
+    flags: [swap]
+    part_start: "{{ part_start_swap_size }}"
+    part_end: "{{ part_end_swap_size }}"
+
+- name: Format swap partition
+  community.general.filesystem:
+    fstype: swap
+    dev: "{{ device }}{{ swap_number }}"
+
+- name: Create root partition
+  community.general.parted:
+    device: "{{ device }}"
+    number: "{{ root_number }}"
+    state: present
+    label: gpt
+    flags: [boot]
+    part_end: "{{ part_end_root_size }}"
+
+- name: Format root partition
+  community.general.filesystem:
+    fstype: ext4
+    dev: "{{ device }}{{ root_number }}"

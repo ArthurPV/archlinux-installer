@@ -1,0 +1,9 @@
+---
+
+- name: Install ArchLinux - example
+  hosts: archlinux_server
+  connection: ssh
+  become: true
+  roles:
+    - main
+    - { role: partition, vars_file: roles/partition/vars/main.yaml, tags: partition }

@@ -1,0 +1,13 @@
+device: /dev/sda
+layout: uefi
+efi_size: 512MiB
+swap_size: 1GiB
+part_start_efi_size: 0.0MiB
+part_end_efi_size: "{{ efi_size }}"
+part_start_swap_size: "{{ efi_size if layout == 'uefi' else 0MiB }}"
+part_end_swap_size: "{{ efi_size + swap_size if layout == 'uefi' else swap_size }}GiB"
+efi_number: "{{ 1 if layout == 'uefi' else 0 }}"
+swap_number: "{{ 2 if layout == 'uefi' else 1 }}"
+root_number: "{{ 3 if layout == 'uefi' else 2 }}"
+
+part_end_root_size: "100%"

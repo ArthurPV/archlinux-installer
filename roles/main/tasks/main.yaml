@@ -1,3 +1,0 @@
-- name: Install ansible
-  pacman:
-    name: ansible
