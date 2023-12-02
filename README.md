@@ -1,5 +1,7 @@
 # ArchLinux Installer
 
+In progress...
+
 > [!WARNING]  
 > This playbook is not intended to be used on a local machine, it will erase all your data. Use it only on a remote host that you can access with SSH and that you don't care about.
 
