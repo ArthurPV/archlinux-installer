@@ -112,7 +112,7 @@ class PartitionRoleVars:
     device: str
     layout: str
     efi_size: int  # in MiB
-    swap_size: int # in GiB
+    swap_size: int  # in GiB
 
     def path() -> str:
         return "roles/partition/vars/main.yaml"
@@ -123,18 +123,26 @@ class PartitionRoleVars:
         """
         return """device: %s
 layout: %s
-efi_size: %dMiB
-swap_size: %dGiB
-part_start_efi_size: 0.0MiB
-part_end_efi_size: "{{ efi_size }}"
-part_start_swap_size: "{{ efi_size if layout == \'uefi\' else 0MiB }}"
-part_end_swap_size: "{{ efi_size + swap_size if layout == \'uefi\' else swap_size }}GiB"
+efi_size: "{{ %d * 1024 }}"
+swap_size: "{{ %d * 1024 * 1024 }}"
+efi_size_with_unit: "{{ efi_size }}KiB"
+swap_size_with_unit: "{{ swap_size }}KiB"
+root_size_with_unit: 100%%
+part_start_efi_size: 0KiB
+part_end_efi_size: "{{ efi_size_with_unit }}"
+part_start_swap_size: "{{ efi_size_with_unit if layout == \'uefi\' else \'0KiB\' }}"
+part_end_swap_size: "{{ efi_size + swap_size if layout == \'uefi\' else swap_size }}KiB"
 efi_number: "{{ 1 if layout == \'uefi\' else 0 }}"
 swap_number: "{{ 2 if layout == \'uefi\' else 1 }}"
 root_number: "{{ 3 if layout == \'uefi\' else 2 }}"
-
-part_end_root_size: "100%%"
-""" % (self.device, self.layout, self.efi_size, self.swap_size)
+part_start_root_size: "{{ part_end_swap_size }}"
+part_end_root_size: "{{ root_size_with_unit }}"
+""" % (
+            self.device,
+            self.layout,
+            self.efi_size,
+            self.swap_size,
+        )
 
 
 @dataclass
@@ -147,6 +155,7 @@ class PartitionRoleTaskMain:
         Return the content of the `roles/partition/tasks/main.yaml` file
         """
         return f"""---
+
 - name: Create EFI partition
   community.general.parted:
     device: {'"{{ device }}"'}
@@ -160,7 +169,7 @@ class PartitionRoleTaskMain:
 
 - name: Format EFI partition
   community.general.filesystem:
-    fstype: fat32
+    fstype: vfat
     dev: {'"{{ device }}{{ efi_number }}"'}
   when: layout == "uefi"
 
@@ -186,12 +195,46 @@ class PartitionRoleTaskMain:
     state: present
     label: gpt
     flags: [boot]
+    part_start: {'"{{ part_start_root_size }}"'}
     part_end: {'"{{ part_end_root_size }}"'}
 
 - name: Format root partition
   community.general.filesystem:
     fstype: ext4
     dev: {'"{{ device }}{{ root_number }}"'}
+
+- name: Mount root partition
+  ansible.builtin.mount:
+    path: /mnt
+    src: {'"{{ device }}{{ root_number }}"'}
+    state: mounted
+    fstype: ext4
+
+- name: Create /mnt/boot directory
+  ansible.builtin.file:
+    path: /mnt/boot
+    state: directory
+    mode: 0755
+    owner: root
+    group: root
+    recurse: yes
+    selevel: s0
+    serole: object_r
+    setype: sysfs_t
+    seuser: system_u
+  when: layout == "uefi"
+
+- name: Mount EFI partition
+  ansible.builtin.mount:
+    path: /mnt/boot
+    src: {'"{{ device }}{{ efi_number }}"'}
+    state: mounted
+    fstype: vfat
+  when: layout == "uefi"
+
+- name: Swapon swap partition
+  ansible.builtin.shell:
+    cmd: swapon {'"{{ device }}"'}{'"{{ swap_number}}"'}
 """
 
 
