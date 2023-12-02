@@ -10,8 +10,8 @@ Here is the steps to install ArchLinux on a remote host with a custom generated 
 ## 1. Clone repo
 
 ```bash
-git clone repo
-cd repo
+git clone https://github.com/ArthurPV/archlinux-installer.git
+cd archlinux-installer
 ```
 
 ## 2. Install ansible
