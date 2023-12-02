@@ -1,0 +1,5 @@
+---
+
+- name: Install base, linux, linux-firmware
+  ansible.builtin.shell:
+    cmd: pacstrap /mnt base linux linux-firmware

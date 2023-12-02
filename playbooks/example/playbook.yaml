@@ -7,3 +7,4 @@
   roles:
     - main
     - { role: partition, vars_file: roles/partition/vars/main.yaml, tags: partition }
+    - { role: installation, tags: installation }

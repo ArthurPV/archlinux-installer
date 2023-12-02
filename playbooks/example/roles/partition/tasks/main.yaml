@@ -78,4 +78,4 @@
 
 - name: Swapon swap partition
   ansible.builtin.shell:
-    cmd: swapon "{{ device }}""{{ swap_number}}"
+    cmd: swapon "{{ device }}{{ swap_number }}"
