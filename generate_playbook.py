@@ -150,10 +150,10 @@ swap_size: "{{ %d * 1024 * 1024 }}"
 efi_size_with_unit: "{{ efi_size }}KiB"
 swap_size_with_unit: "{{ swap_size }}KiB"
 root_size_with_unit: 100%%
-part_start_efi_size: 0KiB
+part_start_efi_size: 1024KiB
 part_end_efi_size: "{{ efi_size_with_unit }}"
-part_start_swap_size: "{{ efi_size_with_unit if layout == \'uefi\' else \'0KiB\' }}"
-part_end_swap_size: "{{ efi_size + swap_size if layout == \'uefi\' else swap_size }}KiB"
+part_start_swap_size: "{{ efi_size_with_unit if layout == \'uefi\' else \'1024KiB\' }}"
+part_end_swap_size: "{{ (efi_size | int) + (swap_size | int) if layout == \'uefi\' else swap_size }}KiB"
 efi_number: "{{ 1 if layout == \'uefi\' else 0 }}"
 swap_number: "{{ 2 if layout == \'uefi\' else 1 }}"
 root_number: "{{ 3 if layout == \'uefi\' else 2 }}"
@@ -256,7 +256,7 @@ class PartitionRoleTaskMain:
 
 - name: Swapon swap partition
   ansible.builtin.shell:
-    cmd: swapon {'"{{ device }}"'}{'"{{ swap_number}}"'}
+    cmd: swapon {'"{{ device }}{{ swap_number }}"'}
 """
 
 
@@ -309,6 +309,23 @@ def partition_role_var_configuration() -> PartitionRoleVars:
 
 
 @dataclass
+class InstallationRoleTaskMain:
+    def path() -> str:
+        return "roles/installation/tasks/main.yaml"
+
+    def __str__(self) -> str:
+        """
+        Return the content of the `roles/installation/tasks/main.yaml` file
+        """
+        return """---
+
+- name: Install base, linux, linux-firmware
+  ansible.builtin.shell:
+    cmd: pacstrap /mnt base linux linux-firmware
+"""
+
+
+@dataclass
 class Playbook:
     name: str
 
@@ -328,6 +345,7 @@ class Playbook:
   roles:
     - main
     - {"{ role: partition, vars_file: roles/partition/vars/main.yaml, tags: partition }"}
+    - {"{ role: installation, tags: installation }"}
 """
 
 
@@ -361,6 +379,10 @@ def main():
     )
     create_file_with_content(
         f"{PLAYBOOK_DIR}/{MainRoleTaskMain.path()}", str(MainRoleTaskMain())
+    )
+    create_file_with_content(
+        f"{PLAYBOOK_DIR}/{InstallationRoleTaskMain.path()}",
+        str(InstallationRoleTaskMain()),
     )
 
 
