@@ -395,7 +395,7 @@ class ConfigureRoleTaskMain:
 
 - name: Run mkinitcpio
   ansible.builtin.shell:
-    cmd: "{{arch_chroot }} mkinitcpio -P"
+    cmd: "{{ arch_chroot }} mkinitcpio -P"
 
 - name: Set root password
   ansible.builtin.shell:
