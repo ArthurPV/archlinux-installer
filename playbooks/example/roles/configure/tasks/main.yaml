@@ -34,8 +34,33 @@
 
 - name: Run mkinitcpio
   ansible.builtin.shell:
-    cmd: "{{arch_chroot }} mkinitcpio -P"
+    cmd: "{{ arch_chroot }} mkinitcpio -P"
 
 - name: Set root password
   ansible.builtin.shell:
     cmd: "{{ arch_chroot }} echo 'root:{{ root_passwd }}' | chpasswd"
+
+- name: Install grub, efibootmgr, os-prober
+  ansible.builtin.shell:
+    cmd: "{{ arch_chroot }} pacman -S --noconfirm grub efibootmgr os-prober"
+  when: layout == "uefi"
+
+- name: Install grub, os-prober
+  ansible.builtin.shell:
+    cmd: "{{ arch_chroot }} pacman -S --noconfirm grub os-prober"
+  when: layout == "bios"
+
+- name: Install grub for UEFI
+  ansible.builtin.shell:
+    cmd: "{{ arch_chroot }} grub-install --target={{ grub_target }} --efi-directory=/boot --bootloader-id=GRUB"
+  when: layout == "uefi"
+
+- name: Install grub for BIOS
+  ansible.builtin.shell:
+    cmd: "{{ arch_chroot }} grub-install --target={{ grub_target }} {{ device }}"
+  when: layout == "bios"
+
+- name: Generate grub config for UEFI
+  ansible.builtin.shell:
+    cmd: "{{ arch_chroot }} grub-mkconfig -o /boot/grub/grub.cfg"
+  when: layout == "uefi"

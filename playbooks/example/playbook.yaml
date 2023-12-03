@@ -8,4 +8,4 @@
     - main
     - { role: partition, vars_file: roles/partition/vars/main.yaml, tags: partition }
     - { role: installation, tags: installation }
-    - { role: configure, vars_file: roles/configure/vars/main.yaml, tags: configure }
+    - { role: configure, vars_file: [roles/configure/vars/main.yaml, roles/partition/vars/main.yaml], tags: configure }

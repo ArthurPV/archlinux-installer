@@ -14,6 +14,7 @@
 - name: Format EFI partition
   community.general.filesystem:
     fstype: vfat
+    force: true
     dev: "{{ device }}{{ efi_number }}"
   when: layout == "uefi"
 
@@ -30,6 +31,7 @@
 - name: Format swap partition
   community.general.filesystem:
     fstype: swap
+    force: true
     dev: "{{ device }}{{ swap_number }}"
 
 - name: Create root partition
@@ -45,6 +47,7 @@
 - name: Format root partition
   community.general.filesystem:
     fstype: ext4
+    force: true
     dev: "{{ device }}{{ root_number }}"
 
 - name: Mount root partition
