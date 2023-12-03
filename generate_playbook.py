@@ -192,6 +192,7 @@ class PartitionRoleTaskMain:
 - name: Format EFI partition
   community.general.filesystem:
     fstype: vfat
+    force: true
     dev: {'"{{ device }}{{ efi_number }}"'}
   when: layout == "uefi"
 
@@ -208,6 +209,7 @@ class PartitionRoleTaskMain:
 - name: Format swap partition
   community.general.filesystem:
     fstype: swap
+    force: true
     dev: {'"{{ device }}{{ swap_number }}"'}
 
 - name: Create root partition
@@ -223,6 +225,7 @@ class PartitionRoleTaskMain:
 - name: Format root partition
   community.general.filesystem:
     fstype: ext4
+    force: true
     dev: {'"{{ device }}{{ root_number }}"'}
 
 - name: Mount root partition
@@ -333,6 +336,7 @@ class ConfigureRoleVars:
     keyboard_layout: str
     hostname: str
     root_passwd: str
+    grub_target: str
 
     def path() -> str:
         return "roles/configure/vars/main.yaml"
@@ -348,7 +352,47 @@ keyboard_layout: {self.keyboard_layout}
 hostname: {self.hostname}
 root_passwd: {self.root_passwd}
 arch_chroot: arch-chroot /mnt
+grub_target: {self.grub_target}
 """
+
+
+def configure_role_var_configuration() -> ConfigureRoleVars:
+    print_title("Configure role configuration")
+
+    # TODO: Add region verification
+    region = input("Region: ")
+    # TODO: Add city verification
+    city = input("City: ")
+    # TODO: Add locale verification
+    locale = input("Locale: ")
+    # TODO: Add keyboard layout verification
+    keyboard_layout = input("Keyboard layout: ")
+    # TODO: Add hostname verification
+    hostname = input("Hostname: ")
+    root_passwd = input("Root password: ")
+    # TODO: Add grub target verification
+
+    while True:
+        grub_target_pattern = r"arm-coreboot|arm-efi|arm-uboot|arm64-efi|i386-coreboot|i386-efi|i386-ieee1275|i386-multiboot|i386-pc|i386-qemu|i386-xen|i386-xen_pvh|ia64-efi|loongarch64-efi|mips-arc|mips-qemu_mips|mipsel-arc|mipsel-loongson|mipsel-qemu_mips|powerpc-ieee1275|riscv32-efi|riscv64-efi|sparc64-ieee1275|x86_64-efi|x86_64-xen"
+        grub_target = input(f"Grub target ({grub_target_pattern}): ")
+
+        if (
+            re.match(
+                grub_target_pattern,
+                grub_target,
+            )
+            is None
+        ):
+            print(
+                "Bad formating of grub target, expected arm-coreboot|arm-efi|arm-uboot|arm64-efi|i386-coreboot|i386-efi|i386-ieee1275|i386-multiboot|i386-pc|i386-qemu|i386-xen|i386-xen_pvh|ia64-efi|loongarch64-efi|mips-arc|mips-qemu_mips|mipsel-arc|mipsel-loongson|mipsel-qemu_mips|powerpc-ieee1275|riscv32-efi|riscv64-efi|sparc64-ieee1275|x86_64-efi|x86_64-xen"
+            )
+            continue
+        else:
+            break
+
+    return ConfigureRoleVars(
+        region, city, locale, keyboard_layout, hostname, root_passwd, grub_target
+    )
 
 
 class ConfigureRoleTaskMain:
@@ -400,27 +444,32 @@ class ConfigureRoleTaskMain:
 - name: Set root password
   ansible.builtin.shell:
     cmd: "{{ arch_chroot }} echo 'root:{{ root_passwd }}' | chpasswd"
+
+- name: Install grub, efibootmgr, os-prober
+  ansible.builtin.shell:
+    cmd: "{{ arch_chroot }} pacman -S --noconfirm grub efibootmgr os-prober"
+  when: layout == "uefi"
+
+- name: Install grub, os-prober
+  ansible.builtin.shell:
+    cmd: "{{ arch_chroot }} pacman -S --noconfirm grub os-prober"
+  when: layout == "bios"
+
+- name: Install grub for UEFI
+  ansible.builtin.shell:
+    cmd: "{{ arch_chroot }} grub-install --target={{ grub_target }} --efi-directory=/boot --bootloader-id=GRUB"
+  when: layout == "uefi"
+
+- name: Install grub for BIOS
+  ansible.builtin.shell:
+    cmd: "{{ arch_chroot }} grub-install --target={{ grub_target }} {{ device }}"
+  when: layout == "bios"
+
+- name: Generate grub config for UEFI
+  ansible.builtin.shell:
+    cmd: "{{ arch_chroot }} grub-mkconfig -o /boot/grub/grub.cfg"
+  when: layout == "uefi"
 """
-
-
-def configure_role_var_configuration() -> ConfigureRoleVars:
-    print_title("Configure role configuration")
-
-    # TODO: Add region verification
-    region = input("Region: ")
-    # TODO: Add city verification
-    city = input("City: ")
-    # TODO: Add locale verification
-    locale = input("Locale: ")
-    # TODO: Add keyboard layout verification
-    keyboard_layout = input("Keyboard layout: ")
-    # TODO: Add hostname verification
-    hostname = input("Hostname: ")
-    root_passwd = input("Root password: ")
-
-    return ConfigureRoleVars(
-        region, city, locale, keyboard_layout, hostname, root_passwd
-    )
 
 
 @dataclass
@@ -444,7 +493,7 @@ class Playbook:
     - main
     - {"{ role: partition, vars_file: roles/partition/vars/main.yaml, tags: partition }"}
     - {"{ role: installation, tags: installation }"}
-    - {"{ role: configure, vars_file: roles/configure/vars/main.yaml, tags: configure }"}
+    - {"{ role: configure, vars_file: [roles/configure/vars/main.yaml, roles/partition/vars/main.yaml], tags: configure }"}
 """
 
 
