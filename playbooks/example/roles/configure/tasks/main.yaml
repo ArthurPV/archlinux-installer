@@ -52,12 +52,12 @@
 
 - name: Install grub for UEFI
   ansible.builtin.shell:
-    cmd: "{{ arch_chroot }} grub-install --target={{ grub_target }} --efi-directory=/boot --bootloader-id=GRUB"
+    cmd: "{{ arch_chroot }} grub-install --target={{ grub_target }} --efi-directory=/boot --bootloader-id=GRUB {{ nvram_option }}"
   when: layout == "uefi"
 
 - name: Install grub for BIOS
   ansible.builtin.shell:
-    cmd: "{{ arch_chroot }} grub-install --target={{ grub_target }} {{ device }}"
+    cmd: "{{ arch_chroot }} grub-install --target={{ grub_target }} {{ device }} {{ nvram_option }}"
   when: layout == "bios"
 
 - name: Generate grub config for UEFI
