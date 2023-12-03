@@ -337,6 +337,7 @@ class ConfigureRoleVars:
     hostname: str
     root_passwd: str
     grub_target: str
+    nvram: str
 
     def path() -> str:
         return "roles/configure/vars/main.yaml"
@@ -353,6 +354,7 @@ hostname: {self.hostname}
 root_passwd: {self.root_passwd}
 arch_chroot: arch-chroot /mnt
 grub_target: {self.grub_target}
+nvram_option: {self.nvram}
 """
 
 
@@ -370,7 +372,6 @@ def configure_role_var_configuration() -> ConfigureRoleVars:
     # TODO: Add hostname verification
     hostname = input("Hostname: ")
     root_passwd = input("Root password: ")
-    # TODO: Add grub target verification
 
     while True:
         grub_target_pattern = r"arm-coreboot|arm-efi|arm-uboot|arm64-efi|i386-coreboot|i386-efi|i386-ieee1275|i386-multiboot|i386-pc|i386-qemu|i386-xen|i386-xen_pvh|ia64-efi|loongarch64-efi|mips-arc|mips-qemu_mips|mipsel-arc|mipsel-loongson|mipsel-qemu_mips|powerpc-ieee1275|riscv32-efi|riscv64-efi|sparc64-ieee1275|x86_64-efi|x86_64-xen"
@@ -390,8 +391,22 @@ def configure_role_var_configuration() -> ConfigureRoleVars:
         else:
             break
 
+    while True:
+        nvram = input("NVRAM (y/n) ")
+
+        if (re.match(r"y|n", nvram)) is None:
+            print("expected y|n")
+            continue
+        else:
+            if nvram == "y":
+                nvram = ""
+            else:
+                nvram = "--no-nvram"
+
+            break
+
     return ConfigureRoleVars(
-        region, city, locale, keyboard_layout, hostname, root_passwd, grub_target
+        region, city, locale, keyboard_layout, hostname, root_passwd, grub_target, nvram
     )
 
 
@@ -457,12 +472,12 @@ class ConfigureRoleTaskMain:
 
 - name: Install grub for UEFI
   ansible.builtin.shell:
-    cmd: "{{ arch_chroot }} grub-install --target={{ grub_target }} --efi-directory=/boot --bootloader-id=GRUB"
+    cmd: "{{ arch_chroot }} grub-install --target={{ grub_target }} --efi-directory=/boot --bootloader-id=GRUB {{ nvram_option }}"
   when: layout == "uefi"
 
 - name: Install grub for BIOS
   ansible.builtin.shell:
-    cmd: "{{ arch_chroot }} grub-install --target={{ grub_target }} {{ device }}"
+    cmd: "{{ arch_chroot }} grub-install --target={{ grub_target }} {{ device }} {{ nvram_option }}"
   when: layout == "bios"
 
 - name: Generate grub config for UEFI
