@@ -260,7 +260,7 @@ class PartitionRoleTaskMain:
 """
 
 
-def partition_role_var_configuration() -> PartitionRoleVars:
+def configure_role_var_partition() -> PartitionRoleVars:
     print_title("Partition role configuration")
 
     while True:
@@ -326,6 +326,104 @@ class InstallationRoleTaskMain:
 
 
 @dataclass
+class ConfigureRoleVars:
+    region: str
+    city: str
+    locale: str
+    keyboard_layout: str
+    hostname: str
+    root_passwd: str
+
+    def path() -> str:
+        return "roles/configure/vars/main.yaml"
+
+    def __str__(self) -> str:
+        """
+        Return the content of the `roles/configure/vars/main.yaml` file
+        """
+        return f"""region: {self.region}
+city: {self.city}
+locale: {self.locale}
+keyboard_layout: {self.keyboard_layout}
+hostname: {self.hostname}
+root_passwd: {self.root_passwd}
+arch_chroot: arch-chroot /mnt
+"""
+
+
+class ConfigureRoleTaskMain:
+    def path() -> str:
+        return "roles/configure/tasks/main.yaml"
+
+    def __str__(self) -> str:
+        """
+        Return the content of the `roles/configure/tasks/main.yaml` file
+        """
+        return """---
+
+- name: Generate fstab
+  ansible.builtin.shell:
+    cmd: genfstab -U /mnt >> /mnt/etc/fstab
+
+- name: Set timezone
+  ansible.builtin.shell:
+    cmd: "{{ arch_chroot }} ln -sf /usr/share/zoneinfo/{{ region }}/{{ city }} /etc/localtime"
+
+- name: Run hwclock
+  ansible.builtin.shell:
+    cmd: "{{ arch_chroot }} hwclock --systohc"
+
+- name: Set locale
+  ansible.builtin.shell:
+    cmd: "{{ arch_chroot }} sed -i 's/#{{ locale }}/{{ locale }}/' /etc/locale.gen"
+
+- name: Generate locale
+  ansible.builtin.shell:
+    cmd: "{{ arch_chroot }} locale-gen"
+
+- name: Set locale
+  ansible.builtin.shell:
+    cmd: "{{ arch_chroot }} echo 'LANG={{ (locale.split(' '))[0] }}' > /etc/locale.conf"
+
+- name: Set keyboad layout
+  ansible.builtin.shell:
+    cmd: "{{ arch_chroot }} echo 'KEYMAP={{ keyboard_layout }}' > /etc/vconsole.conf"
+
+- name: Set hostname
+  ansible.builtin.shell:
+    cmd: "{{ arch_chroot }} echo '{{ hostname }}' > /etc/hostname"
+
+- name: Run mkinitcpio
+  ansible.builtin.shell:
+    cmd: "{{arch_chroot }} mkinitcpio -P"
+
+- name: Set root password
+  ansible.builtin.shell:
+    cmd: "{{ arch_chroot }} echo 'root:{{ root_passwd }}' | chpasswd"
+"""
+
+
+def configure_role_var_configuration() -> ConfigureRoleVars:
+    print_title("Configure role configuration")
+
+    # TODO: Add region verification
+    region = input("Region: ")
+    # TODO: Add city verification
+    city = input("City: ")
+    # TODO: Add locale verification
+    locale = input("Locale: ")
+    # TODO: Add keyboard layout verification
+    keyboard_layout = input("Keyboard layout: ")
+    # TODO: Add hostname verification
+    hostname = input("Hostname: ")
+    root_passwd = input("Root password: ")
+
+    return ConfigureRoleVars(
+        region, city, locale, keyboard_layout, hostname, root_passwd
+    )
+
+
+@dataclass
 class Playbook:
     name: str
 
@@ -346,6 +444,7 @@ class Playbook:
     - main
     - {"{ role: partition, vars_file: roles/partition/vars/main.yaml, tags: partition }"}
     - {"{ role: installation, tags: installation }"}
+    - {"{ role: configure, vars_file: roles/configure/vars/main.yaml, tags: configure }"}
 """
 
 
@@ -369,7 +468,7 @@ def main():
     )
     create_file_with_content(
         f"{PLAYBOOK_DIR}/{PartitionRoleVars.path()}",
-        str(partition_role_var_configuration()),
+        str(configure_role_var_partition()),
     )
     create_file_with_content(
         f"{PLAYBOOK_DIR}/{PartitionRoleTaskMain.path()}", str(PartitionRoleTaskMain())
@@ -383,6 +482,14 @@ def main():
     create_file_with_content(
         f"{PLAYBOOK_DIR}/{InstallationRoleTaskMain.path()}",
         str(InstallationRoleTaskMain()),
+    )
+    create_file_with_content(
+        f"{PLAYBOOK_DIR}/{ConfigureRoleVars.path()}",
+        str(configure_role_var_configuration()),
+    )
+    create_file_with_content(
+        f"{PLAYBOOK_DIR}/{ConfigureRoleTaskMain.path()}",
+        str(ConfigureRoleTaskMain()),
     )
 
 
