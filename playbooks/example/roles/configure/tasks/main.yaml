@@ -1,0 +1,41 @@
+---
+
+- name: Generate fstab
+  ansible.builtin.shell:
+    cmd: genfstab -U /mnt >> /mnt/etc/fstab
+
+- name: Set timezone
+  ansible.builtin.shell:
+    cmd: "{{ arch_chroot }} ln -sf /usr/share/zoneinfo/{{ region }}/{{ city }} /etc/localtime"
+
+- name: Run hwclock
+  ansible.builtin.shell:
+    cmd: "{{ arch_chroot }} hwclock --systohc"
+
+- name: Set locale
+  ansible.builtin.shell:
+    cmd: "{{ arch_chroot }} sed -i 's/#{{ locale }}/{{ locale }}/' /etc/locale.gen"
+
+- name: Generate locale
+  ansible.builtin.shell:
+    cmd: "{{ arch_chroot }} locale-gen"
+
+- name: Set locale
+  ansible.builtin.shell:
+    cmd: "{{ arch_chroot }} echo 'LANG={{ (locale.split(' '))[0] }}' > /etc/locale.conf"
+
+- name: Set keyboad layout
+  ansible.builtin.shell:
+    cmd: "{{ arch_chroot }} echo 'KEYMAP={{ keyboard_layout }}' > /etc/vconsole.conf"
+
+- name: Set hostname
+  ansible.builtin.shell:
+    cmd: "{{ arch_chroot }} echo '{{ hostname }}' > /etc/hostname"
+
+- name: Run mkinitcpio
+  ansible.builtin.shell:
+    cmd: "{{arch_chroot }} mkinitcpio -P"
+
+- name: Set root password
+  ansible.builtin.shell:
+    cmd: "{{ arch_chroot }} echo 'root:{{ root_passwd }}' | chpasswd"

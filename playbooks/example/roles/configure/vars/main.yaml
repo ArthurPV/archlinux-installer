@@ -1,0 +1,7 @@
+region: America
+city: Montreal
+locale: en_CA.UTF-8 UTF-8
+keyboard_layout: us
+hostname: arch
+root_passwd: 1234
+arch_chroot: arch-chroot /mnt
